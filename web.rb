@@ -11,16 +11,19 @@ require 'omniauth'
 require 'omniauth-google-oauth2'
 require 'omniauth-facebook'
 require 'omniauth-twitter'
+require 'omniauth-discord'
 
 PROVIDERS = {
     :google_oauth2 => [ ENV['GOOGLE_KEY'], ENV['GOOGLE_SECRET'], {access_type: 'online', approval_prompt: ''} ],
     :facebook => [ ENV['FACEBOOK_KEY'], ENV['FACEBOOK_SECRET'] ],
     :twitter => [ ENV['TWITTER_KEY'], ENV['TWITTER_SECRET'] ],
+    :discord => [ ENV['DISCORD_CLIENT_ID'], ENV['DISCORD_CLIENT_SECRET'] ],
 }
 
 VALID_SETTINGS = [
     'language',
     'hugeShipMovedWarningSeen',
+    'showInitiativeInFrontOfPilotName'
 ]
 
 INTERESTING_HEADERS = [
@@ -53,7 +56,10 @@ class XWingSquadDatabase < Sinatra::Base
 
     # Middleware
 
-    use Rack::Session::Cookie, :secret => ENV['SESSION_SECRET']
+    use Rack::Session::Cookie,  :expire_after => 2592000,
+                                :secret => ENV['SESSION_SECRET'],
+                                :same_site => :none,
+                                :secure => true
 
     use OmniAuth::Builder do
         PROVIDERS.each do |provider_name, provider_args|
@@ -62,11 +68,13 @@ class XWingSquadDatabase < Sinatra::Base
     end
 
     use Rack::Cors do
-        allow do
-            origins ENV['ALLOWED_ORIGINS']
-            resource '*', :credentials => true,
-                :methods => [ :get, :post, :put, :delete ],
-                :headers => :any
+        ENV['ALLOWED_ORIGINS'].split do |origin|
+            allow do
+                origins origin
+                resource '*', :credentials => true,
+                    :methods => [ :get, :post, :put, :delete ],
+                    :headers => :any
+            end
         end
     end
 
@@ -104,7 +112,7 @@ class XWingSquadDatabase < Sinatra::Base
         end
 
         def get_collection()
-            collection = Collection.new(env['xwing.user']['_id'], {}, {})
+            collection = Collection.new(env['xwing.user']['_id'], {}, {}, {})
 
             begin
                 collection_doc = settings.db.get(collection['_id'])
@@ -199,30 +207,39 @@ class XWingSquadDatabase < Sinatra::Base
         json :methods => PROVIDERS.keys
     end
 
-    # Unprotected; everyone can view the full list
-    get '/all' do
-        out = {
-            'Rebel Alliance' => [],
-            'Galactic Empire' => [],
-            'Scum and Villainy' => [],
-        }
-        settings.db.view('squads/list', { :reduce => false })['rows'].each do |row|
-            _, faction, name = row['key']
-            out[faction].push({
-                :id => row['id'],
-                :name => name,
-                :serialized => row['value']['serialized'] || nil,
-                :additional_data => row['value']['additional_data'] || nil,
-            })
-        end
-        json out
-    end
+    # # Unprotected; everyone can view the full list
+    # get '/all' do
+    #     out = {
+    #         'Rebel Alliance' => [],
+    #         'Galactic Empire' => [],
+    #         'Scum and Villainy' => [],
+    #         'Resistance' => [],
+    #         'First Order' => [],
+    #         'Galactic Republic' => [],
+    #         'Separatist Alliance' => [],
+    #     }
+    #     settings.db.view('squads/list', { :reduce => false })['rows'].each do |row|
+    #         _, faction, name = row['key']
+    #         out[faction].push({
+    #             :id => row['id'],
+    #             :name => name,
+    #             :serialized => row['value']['serialized'] || nil,
+    #             :additional_data => row['value']['additional_data'] || nil,
+    #         })
+    #     end
+    #     json out
+    # end
 
     get '/squads/list' do
         out = {
             'Rebel Alliance' => [],
             'Galactic Empire' => [],
             'Scum and Villainy' => [],
+            'Resistance' => [],
+            'First Order' => [],
+            'Galactic Republic' => [],
+            'Separatist Alliance' => [],
+            'All' => [],
         }
         settings.db.view('squads/list', { :reduce => false, :startkey => [ env['xwing.user']['_id'] ], :endkey => [ env['xwing.user']['_id'], {}, {} ] })['rows'].each do |row|
             _, faction, name = row['key']
@@ -317,7 +334,8 @@ class XWingSquadDatabase < Sinatra::Base
 
         json :collection => {
             'expansions' => collection['expansions'],
-            'singletons' => collection['singletons']
+            'singletons' => collection['singletons'],
+            'checks' => collection['checks']
         }
     end
 
@@ -327,6 +345,7 @@ class XWingSquadDatabase < Sinatra::Base
         collection = get_collection
         collection['expansions'] = params[:expansions]
         collection['singletons'] = params[:singletons]
+        collection['checks'] = params[:checks]
         begin
             _ = settings.db.save_doc(collection)
             json :success => true, :error => nil
@@ -373,8 +392,10 @@ class Squad < Hash
         self['serialized'] = serialized_str
         self['name'] = name
         self['faction'] = faction
-        if additional_data.instance_of? Hash
+        begin
             self['additional_data'] = additional_data.to_hash
+        rescue
+            self['additional_data'] = {}
         end
     end
 
@@ -390,21 +411,22 @@ class Squad < Hash
 end
 
 class Collection < Hash
-    def initialize(user_id, expansions, singletons)
+    def initialize(user_id, expansions, singletons, checks)
         self['_id'] = "collection_#{user_id}"
         self['type'] = 'collection'
         self['user_id'] = user_id
         self['expansions'] = expansions
         self['singletons'] = singletons
+        self['checks'] = checks
     end
 
     def self.fromDoc(doc)
-        new_obj = self.new(nil, nil, nil)
+        new_obj = self.new(nil, nil, nil, nil)
         new_obj.update(doc)
         new_obj
     end
 
     def to_s
-        "#<Collection id=#{self['_id']}, user_id=#{self['user_id']}, expansions=#{self['expansions']}, singletons=#{self['singletons']}>"
+        "#<Collection id=#{self['_id']}, user_id=#{self['user_id']}, expansions=#{self['expansions']}, singletons=#{self['singletons']}, checks=#{self['checks']}>"
     end
 end
