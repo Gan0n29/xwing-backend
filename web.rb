@@ -40,6 +40,20 @@ class XWingSquadDatabase < Sinatra::Base
         set :protection, :except => :json_csrf
     end
 
+    configure :production do
+        set :db, CouchRest.database(ENV['CLOUDANT_URL'])
+    end
+
+    configure :development do
+        begin
+            File.open('dev_cloudant.url') do |f|
+                set :db, CouchRest.database(f.read.strip)
+            end
+        rescue
+            set :db, CouchRest.database(ENV['CLOUDANT_DEV_URL'])
+        end
+    end
+
     # Middleware
 
     use Rack::Session::Cookie,  :expire_after => 2592000,
