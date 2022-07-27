@@ -100,7 +100,7 @@ class XWingSquadDatabase < Sinatra::Base
 
         def name_is_available?(name)
             true
-            #settings.db.view('_design/byUserName', { :key => [ env['xwing.user']['_id'], name ] })['rows'].empty?
+            #settings.db.view('_design/squads/_view/byUserName', { :key => [ env['xwing.user']['_id'], name ] })['rows'].empty?
         end
 
         def json(data)
@@ -219,7 +219,7 @@ class XWingSquadDatabase < Sinatra::Base
              'Galactic Republic' => [],
              'Separatist Alliance' => [],
          }
-         settings.db.view('_design/list', { :reduce => false })['rows'].each do |row|
+         settings.db.view('_design/squads/_view/list', { :reduce => false })['rows'].each do |row|
              _, faction, name = row['key']
              out[faction].push({
                  :id => row['id'],
@@ -242,7 +242,7 @@ class XWingSquadDatabase < Sinatra::Base
             'Separatist Alliance' => [],
             'All' => [],
         }
-        settings.db.view('_design/list', { :reduce => false, :startkey => [ env['xwing.user']['_id'] ], :endkey => [ env['xwing.user']['_id'], {}, {} ] })['rows'].each do |row|
+        settings.db.view('_design/squads/_view/list', { :reduce => false, :startkey => [ env['xwing.user']['_id'] ], :endkey => [ env['xwing.user']['_id'], {}, {} ] })['rows'].each do |row|
             _, faction, name = row['key']
             out[faction].push({
                 :id => row['id'],
