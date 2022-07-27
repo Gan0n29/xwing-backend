@@ -99,8 +99,7 @@ class XWingSquadDatabase < Sinatra::Base
         end
 
         def name_is_available?(name)
-            true
-            #settings.db.view('_design/squads/_view/byUserName', { :key => [ env['xwing.user']['_id'], name ] })['rows'].empty?
+            settings.db.view('_design/squads/_view/byUserName', { :key => [ env['xwing.user']['_id'], name ] })['rows'].empty?
         end
 
         def json(data)
@@ -209,27 +208,27 @@ class XWingSquadDatabase < Sinatra::Base
     end
 
      # Unprotected; everyone can view the full list
-     get '/all' do
-         out = {
-             'Rebel Alliance' => [],
-             'Galactic Empire' => [],
-             'Scum and Villainy' => [],
-             'Resistance' => [],
-             'First Order' => [],
-             'Galactic Republic' => [],
-             'Separatist Alliance' => [],
-         }
-         settings.db.view('_design/squads/_view/list', { :reduce => false })['rows'].each do |row|
-             _, faction, name = row['key']
-             out[faction].push({
-                 :id => row['id'],
-                 :name => name,
-                 :serialized => row['value']['serialized'] || nil,
-                 :additional_data => row['value']['additional_data'] || nil,
-             })
-         end
-         json out
-     end
+     #get '/all' do
+     #    out = {
+     #        'Rebel Alliance' => [],
+     #        'Galactic Empire' => [],
+     #        'Scum and Villainy' => [],
+     #        'Resistance' => [],
+     #        'First Order' => [],
+     #        'Galactic Republic' => [],
+     #        'Separatist Alliance' => [],
+     #    }
+     #    settings.db.view('_design/squads/_view/list', { :reduce => false })['rows'].each do |row|
+     #        _, faction, name = row['key']
+     #        out[faction].push({
+     #            :id => row['id'],
+     #            :name => name,
+     #            :serialized => row['value']['serialized'] || nil,
+     #            :additional_data => row['value']['additional_data'] || nil,
+     #        })
+     #    end
+     #    json out
+     #end
 
     get '/squads/list' do
         out = {
