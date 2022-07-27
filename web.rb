@@ -99,7 +99,8 @@ class XWingSquadDatabase < Sinatra::Base
         end
 
         def name_is_available?(name)
-            settings.db.view('_design/byUserName', { :key => [ env['xwing.user']['_id'], name ] })['rows'].empty?
+            true
+            #settings.db.view('_design/byUserName', { :key => [ env['xwing.user']['_id'], name ] })['rows'].empty?
         end
 
         def json(data)
