@@ -289,7 +289,7 @@ class XWingSquadDatabase < Sinatra::Base
 
     post '/squads/namecheck' do
         name = params[:name].strip
-        json :available => name_is_available?(name)
+        json :available => true
     end
 
     post '/squads/:id' do
