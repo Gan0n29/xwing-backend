@@ -16,7 +16,7 @@ require 'omniauth-discord'
 PROVIDERS = {
     ##:google_oauth2 => [ ENV['GOOGLE_KEY'], ENV['GOOGLE_SECRET'], {access_type: 'online', approval_prompt: ''} ],
     ##:facebook => [ ENV['FACEBOOK_KEY'], ENV['FACEBOOK_SECRET'] ],
-    ##:twitter => [ ENV['TWITTER_KEY'], ENV['TWITTER_SECRET'] ],
+    :twitter => [ ENV['TWITTER_KEY'], ENV['TWITTER_SECRET'] ],
     :discord => [ ENV['DISCORD_CLIENT_ID'], ENV['DISCORD_CLIENT_SECRET'] ],
 }
 
