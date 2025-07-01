@@ -1,4 +1,4 @@
-ruby '3.1.2'
+ruby '3.4.4'
 source 'https://rubygems.org'
 gem 'sinatra', '>= 2.0'
 gem 'thin', '>= 1.6.1'
