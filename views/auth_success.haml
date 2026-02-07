@@ -1,11 +1,37 @@
 !!!
 %html
   %head
+    %meta{ charset: "utf-8" }
     %title Authentication Successful
     :javascript
-      var notify = function () {
-        window.opener.postMessage({ command: 'auth_successful' }, '*');
-      };
-  %body{:onload => "notify()"}
-    %p
-      Completing authentication...
+      (function () {
+        function notifyParent() {
+          //  Si ouverte en popup classique
+          if (window.opener && !window.opener.closed) {
+            try {
+              window.opener.postMessage(
+                { command: 'auth_successful' },
+                window.location.origin
+              );
+              window.close();
+              return;
+            } catch (e) {
+              console.error("postMessage failed:", e);
+            }
+          }
+
+          //  Fallback moderne si opener absent (Firefox strict)
+          try {
+            localStorage.setItem('oauth_successful', Date.now().toString());
+          } catch (e) {
+            console.error("localStorage failed:", e);
+          }
+
+          // Redirection propre
+          window.location.href = "/";
+        }
+
+        window.addEventListener("load", notifyParent);
+      })();
+  %body
+    %p Completing authentication...
