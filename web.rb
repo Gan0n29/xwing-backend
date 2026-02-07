@@ -13,7 +13,6 @@ require 'omniauth-facebook'
 require 'omniauth-twitter'
 require 'omniauth-discord'
 
-require 'base64'
 
 PROVIDERS = {
     ##:google_oauth2 => [ ENV['GOOGLE_KEY'], ENV['GOOGLE_SECRET'], {access_type: 'online', approval_prompt: ''} ],
@@ -31,16 +30,6 @@ VALID_SETTINGS = [
 INTERESTING_HEADERS = [
     'HTTP_ACCEPT_LANGUAGE',
 ]
-
-class JSONBase64Coder
-    def load(cookie)
-        Base64.decode64(cookie).then { |c| JSON.parse(c) } rescue {}
-    end
-
-    def dump(session)
-        Base64.encode64(session.to_json)
-    end
-end
 
 class XWingSquadDatabase < Sinatra::Base
     # Config
@@ -71,9 +60,7 @@ class XWingSquadDatabase < Sinatra::Base
     use Rack::Session::Cookie,  :expire_after => 2592000,
                                 :secret => ENV['SESSION_SECRET'],
                                 :same_site => :none,
-                                :secure => true,
-                                :httponly => true,
-                                :coder => JSONBase64Coder.new
+                                :secure => true
 
     use OmniAuth::Builder do
         PROVIDERS.each do |provider_name, provider_args|
